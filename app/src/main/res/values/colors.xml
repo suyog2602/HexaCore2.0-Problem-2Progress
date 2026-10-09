@@ -7,4 +7,7 @@
     <color name="cp_background">#F4F7FB</color>
     <color name="cp_text_dark">#1B2430</color>
     <color name="cp_text_muted">#6B7785</color>
+    <color name="cp_status_pending">#F59E0B</color>
+    <color name="cp_status_progress">#1E6FD9</color>
+    <color name="cp_status_resolved">#16A34A</color>
 </resources>

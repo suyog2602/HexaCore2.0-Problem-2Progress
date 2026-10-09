@@ -2,7 +2,6 @@ package com.example.problem_2progress;   // <-- replace with your real package
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -22,6 +21,6 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(new Intent(this, ReportActivity.class)));
 
         btnMyReports.setOnClickListener(v ->
-                Toast.makeText(this, "Report list coming soon", Toast.LENGTH_SHORT).show());
+                startActivity(new Intent(this, MyReportsActivity.class)));
     }
 }
