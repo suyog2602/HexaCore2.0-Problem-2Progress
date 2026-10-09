@@ -30,7 +30,6 @@ export default function App() {
     }
   }
 
-  // Load once, then refresh every 10 seconds so new reports appear live.
   useEffect(() => {
     load()
     const timer = setInterval(load, 10000)
