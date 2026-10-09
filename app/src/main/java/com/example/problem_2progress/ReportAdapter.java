@@ -10,6 +10,11 @@ import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
+
 import java.util.List;
 
 public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportViewHolder> {
@@ -41,8 +46,13 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         holder.tvTitle.setText(r.getTitle());
         holder.tvCategory.setText(r.getCategory());
         holder.tvDescription.setText(r.getDescription());
-        holder.tvAddress.setText("Location: " + r.getAddress());
-        holder.tvDate.setText("Reported: " + r.getCreatedAt());
+
+        String address = r.getAddress();
+        holder.tvAddress.setText("Location: "
+                + (address == null || address.isEmpty() ? "Detected via GPS" : address));
+        holder.tvDate.setText("Reported: " + formatDate(r.getCreatedAt()));
+
+
         holder.tvStatus.setText(r.getStatus());
 
         // Rounded badge whose color depends on the status.
@@ -61,6 +71,19 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         if ("Resolved".equals(status)) return R.color.cp_status_resolved;
         if ("In Progress".equals(status)) return R.color.cp_status_progress;
         return R.color.cp_status_pending;
+    }
+    // Converts "2026-10-09T06:18:36.972Z" (UTC) into "09 Oct 2026, 11:48 AM" (local time).
+    private String formatDate(String iso) {
+        if (iso == null) return "";
+        if (iso.length() < 19) return iso;
+        try {
+            SimpleDateFormat in = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US);
+            in.setTimeZone(TimeZone.getTimeZone("UTC"));
+            Date date = in.parse(iso.substring(0, 19));
+            return new SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault()).format(date);
+        } catch (Exception e) {
+            return iso;
+        }
     }
 
     static class ReportViewHolder extends RecyclerView.ViewHolder {

@@ -1,7 +1,9 @@
 package com.example.problem_2progress;   // <-- replace with your real package
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -11,10 +13,17 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MyReportsActivity extends AppCompatActivity {
+
+    private static final String TAG = "MyReportsActivity";
 
     private RecyclerView recyclerReports;
     private TextView tvEmpty;
+    private ProgressBar progressBar;
     private ReportAdapter adapter;
 
     @Override
@@ -24,34 +33,50 @@ public class MyReportsActivity extends AppCompatActivity {
 
         recyclerReports = findViewById(R.id.recyclerReports);
         tvEmpty = findViewById(R.id.tvEmpty);
+        progressBar = findViewById(R.id.progressBar);
 
         recyclerReports.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ReportAdapter(new ArrayList<>());
         recyclerReports.setAdapter(adapter);
-
-        // TEMPORARY: fake data. Phase 3 replaces this with a Retrofit call.
-        showReports(getFakeReports());
     }
 
-    private void showReports(List<Report> list) {
-        adapter.setReports(list);
-        tvEmpty.setVisibility(list.isEmpty() ? View.VISIBLE : View.GONE);
+    // Reload every time the screen becomes visible, so a new report shows up.
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadReports();
     }
 
-    private List<Report> getFakeReports() {
-        List<Report> list = new ArrayList<>();
-        list.add(new Report("1", "Deep pothole on main road",
-                "Large pothole near the bus stop causing traffic and bike accidents.",
-                "Pothole / Damaged Road", "Near City Bus Stop, Pimpri", "Pending", "09 Oct 2026"));
-        list.add(new Report("2", "Garbage not collected",
-                "Garbage pile has been overflowing for 5 days behind the market.",
-                "Garbage", "Market Road, Pimpri", "In Progress", "07 Oct 2026"));
-        list.add(new Report("3", "Streetlight not working",
-                "The whole lane is dark at night, unsafe for pedestrians.",
-                "Broken Streetlight", "Lane 4, Sector 12", "Resolved", "03 Oct 2026"));
-        list.add(new Report("4", "Water pipe leakage",
-                "Pipe burst and water is flowing onto the road since morning.",
-                "Water Leakage", "Station Road", "Pending", "02 Oct 2026"));
-        return list;
+    private void loadReports() {
+        progressBar.setVisibility(View.VISIBLE);
+        tvEmpty.setVisibility(View.GONE);
+
+        ApiClient.getService().getReports().enqueue(new Callback<List<Report>>() {
+            @Override
+            public void onResponse(Call<List<Report>> call, Response<List<Report>> response) {
+                progressBar.setVisibility(View.GONE);
+                if (response.isSuccessful() && response.body() != null) {
+                    adapter.setReports(response.body());
+                    if (response.body().isEmpty()) {
+                        showMessage("You haven't reported anything yet.");
+                    }
+                } else {
+                    showMessage("Server error (code " + response.code() + ")");
+                }
+            }
+
+            @Override
+            public void onFailure(Call<List<Report>> call, Throwable t) {
+                progressBar.setVisibility(View.GONE);
+                Log.e(TAG, "Load failed", t);
+                adapter.setReports(new ArrayList<>());
+                showMessage("Couldn't reach the server. Check it is running and the address in ApiClient.");
+            }
+        });
+    }
+
+    private void showMessage(String message) {
+        tvEmpty.setText(message);
+        tvEmpty.setVisibility(View.VISIBLE);
     }
 }

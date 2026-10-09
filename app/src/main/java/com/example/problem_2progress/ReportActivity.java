@@ -29,6 +29,10 @@ import com.google.android.gms.tasks.CancellationTokenSource;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class ReportActivity extends AppCompatActivity {
 
     private static final String TAG = "ReportActivity";
@@ -178,13 +182,35 @@ public class ReportActivity extends AppCompatActivity {
         progressBar.setVisibility(View.VISIBLE);
         btnSubmit.setEnabled(false);
 
-        // TEMPORARY: fake network delay. Replaced by Retrofit in Phase 3.
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            progressBar.setVisibility(View.GONE);
-            btnSubmit.setEnabled(true);
-            Toast.makeText(this, "Report submitted successfully!", Toast.LENGTH_LONG).show();
-            finish();
-        }, 1500);
+        ReportRequest request = new ReportRequest(
+                title, description, category, address, latitude, longitude);
+
+        ApiClient.getService().createReport(request).enqueue(new Callback<Report>() {
+            @Override
+            public void onResponse(Call<Report> call, Response<Report> response) {
+                progressBar.setVisibility(View.GONE);
+                btnSubmit.setEnabled(true);
+                if (response.isSuccessful()) {
+                    Toast.makeText(ReportActivity.this,
+                            "Report submitted successfully!", Toast.LENGTH_LONG).show();
+                    finish();
+                } else {
+                    Toast.makeText(ReportActivity.this,
+                            "Server rejected the report (code " + response.code() + ")",
+                            Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Report> call, Throwable t) {
+                progressBar.setVisibility(View.GONE);
+                btnSubmit.setEnabled(true);
+                Log.e(TAG, "Submit failed", t);
+                Toast.makeText(ReportActivity.this,
+                        "Couldn't reach the server. Check the server is running and the address in ApiClient.",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private String text(TextInputEditText field) {
