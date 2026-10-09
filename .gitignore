@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Backend / secrets
+node_modules/
+.env
+serviceAccountKey.json
+*.log
