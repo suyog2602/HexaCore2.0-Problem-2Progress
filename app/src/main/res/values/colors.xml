@@ -2,4 +2,9 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="cp_primary">#1E6FD9</color>
+    <color name="cp_primary_dark">#0B3F8F</color>
+    <color name="cp_background">#F4F7FB</color>
+    <color name="cp_text_dark">#1B2430</color>
+    <color name="cp_text_muted">#6B7785</color>
 </resources>
