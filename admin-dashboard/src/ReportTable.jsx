@@ -14,7 +14,9 @@ function formatLocation(r) {
   return '-'
 }
 
-export default function ReportTable({ reports, onStatusChange }) {
+export default function ReportTable({ reports, allReports, onStatusChange }) {
+  const titleById = Object.fromEntries((allReports || reports).map((r) => [r.id, r.title]))
+
   if (reports.length === 0) {
     return <p className="p-8 text-center text-slate-500">No reports to show.</p>
   }
@@ -37,6 +39,12 @@ export default function ReportTable({ reports, onStatusChange }) {
               <td className="max-w-xs px-4 py-3">
                 <div className="font-semibold text-slate-800">{r.title}</div>
                 <div className="mt-1 text-slate-500">{r.description}</div>
+                {r.possibleDuplicateOf && (
+                  <div className="mt-2 inline-block rounded-md bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800">
+                    AI: possible duplicate of "{titleById[r.possibleDuplicateOf] || 'another report'}"
+                    {' '}({Math.round(r.duplicateSimilarity * 100)}% similar)
+                  </div>
+                )}
               </td>
               <td className="px-4 py-3 text-blue-700">{r.category}</td>
               <td className="px-4 py-3 text-slate-600">{formatLocation(r)}</td>

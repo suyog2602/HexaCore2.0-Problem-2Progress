@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { fetchReports, updateReportStatus } from './api'
 import ReportTable from './ReportTable'
+import CategoryChart from './CategoryChart'
+import ReportMap from './ReportMap'
 
 const FILTERS = ['All', 'Pending', 'In Progress', 'Resolved']
 
@@ -66,7 +68,21 @@ export default function App() {
           <StatCard label="In progress" value={count('In Progress')} color="text-blue-600" />
           <StatCard label="Resolved" value={count('Resolved')} color="text-green-600" />
         </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <section className="rounded-2xl bg-white p-4 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Reports by category</h2>
+                    <div className="h-72">
+                      <CategoryChart reports={reports} />
+                    </div>
+                  </section>
 
+                  <section className="rounded-2xl bg-white p-4 shadow-sm">
+                    <h2 className="mb-3 text-lg font-semibold text-slate-800">Issue map</h2>
+                    <div className="h-72 overflow-hidden rounded-xl">
+                      <ReportMap reports={reports} />
+                    </div>
+                  </section>
+                </div>
         <section className="rounded-2xl bg-white shadow-sm">
           <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 p-4">
             <h2 className="mr-4 text-lg font-semibold text-slate-800">Reports</h2>
@@ -88,7 +104,7 @@ export default function App() {
           {loading ? (
             <p className="p-8 text-center text-slate-500">Loading reports...</p>
           ) : (
-            <ReportTable reports={visible} onStatusChange={handleStatusChange} />
+            <ReportTable reports={visible} allReports={reports} onStatusChange={handleStatusChange} />
           )}
         </section>
       </main>

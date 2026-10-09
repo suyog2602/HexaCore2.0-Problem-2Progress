@@ -60,6 +60,63 @@ app.get('/health', (req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
+// ---------- AI duplicate detection ----------
+const AI_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+const DUPLICATE_THRESHOLD = Number(process.env.DUPLICATE_THRESHOLD) || 0.6;
+const DUPLICATE_RADIUS_KM = 1;
+
+// Haversine formula: distance in km between two GPS points.
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const toRad = (d) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(a));
+}
+
+// Returns { id, similarity } of the closest likely duplicate, or null.
+// Any failure returns null so a report can still be saved.
+async function findDuplicate(newReport) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 5000);
+  try {
+    const existing = await store.getReports();
+    const candidates = existing
+      .filter((r) => r.status !== 'Resolved')
+      .filter((r) => {
+        if (newReport.latitude == null || r.latitude == null) return true;
+        return distanceKm(newReport.latitude, newReport.longitude, r.latitude, r.longitude)
+          <= DUPLICATE_RADIUS_KM;
+      })
+      .slice(0, 100)
+      .map((r) => ({ id: r.id, text: `${r.title}. ${r.description}` }));
+
+    if (candidates.length === 0) return null;
+
+    const response = await fetch(`${AI_URL}/duplicates`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        text: `${newReport.title}. ${newReport.description}`,
+        candidates,
+        threshold: DUPLICATE_THRESHOLD,
+      }),
+      signal: controller.signal,
+    });
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data.duplicates && data.duplicates.length > 0 ? data.duplicates[0] : null;
+  } catch (err) {
+    console.warn('AI duplicate check skipped:', err.message);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Create a report.
 app.post('/reports', async (req, res) => {
   const body = req.body || {};
@@ -67,7 +124,8 @@ app.post('/reports', async (req, res) => {
   if (errors.length > 0) {
     return res.status(400).json({ error: 'Validation failed', details: errors });
   }
-  const report = await store.addReport({
+
+  const data = {
     title: body.title.trim(),
     description: body.description.trim(),
     category: body.category,
@@ -75,9 +133,18 @@ app.post('/reports', async (req, res) => {
     latitude: body.latitude !== undefined && body.latitude !== null ? Number(body.latitude) : null,
     longitude: body.longitude !== undefined && body.longitude !== null ? Number(body.longitude) : null,
     imageUrl: body.imageUrl,
-  });
+  };
+
+  const duplicate = await findDuplicate(data);
+  if (duplicate) {
+    data.possibleDuplicateOf = duplicate.id;
+    data.duplicateSimilarity = duplicate.similarity;
+  }
+
+  const report = await store.addReport(data);
   res.status(201).json(report);
 });
+
 
 // Fetch all reports (optional filter: /reports?status=Pending).
 app.get('/reports', async (req, res) => {
